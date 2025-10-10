@@ -1,66 +1,66 @@
-% NGW非变位,%%标记算法在历遍时剔除多余数据
-function results = NGW_cal(app,ic,m,np,errd,zmin,zmax)%单独使用将app改为~
-%zmin=17;
-%zmax=210;
-% 预设结果数组
+% NGW non-profile-shifted, %% mark: the algorithm prunes redundant data during iteration
+function results = NGW_cal(app,ic,m,np,errd,zmin,zmax)% For standalone use, change 'app' to '~'
+% zmin=17;
+% zmax=210;
+% Preallocate result array
 max_results  = 60000;
 temp_results = zeros(max_results, 6);
 result_count = 0;
 if isempty(ic) || ic <= 1
-    error('ic 必须提供且 > 1')
+    error('ic Must provide and > 1')
 end
-%齿轮参数
-%daa=(za+haa)*m;
-%dag=(zg+hgahaa)*m;
-%dbg=(zb-hba)*m;%斜齿相同
-haa=1.0;   %这里可以修改
-hga=1.0;   %app中可以直接由用户输入的值返回
+% Gear parameters
+% daa=(za+haa)*m;
+% dag=(zg+hgahaa)*m;
+% dbg=(zb-hba)*m; % same for helical gears
+haa=1.0;   % can be modified here
+hga=1.0;   % in the app this can be obtained directly from user input
 if isempty(errd)
     errd = 0;
 end
-% 以最小太阳轮开始历遍
+% Iterate starting from the minimum sun gear
 for za=zmin:zmax
-    %邻接条件，%%用以先判断最大行星轮或最大传动比,理想均布状态
+    % Adjacency condition, %% first to determine max planet count or max ratio under ideal uniform distribution
     imax=2*(hga-(haa+hga)*sin(pi/np)-za)/(za*(sin(pi/np)-1));
     if ~isempty(ic)
-        fprintf('理论最大传动比%.6f\n',imax)
+        fprintf('Theoretical maximum transmission ratio%.6f\n',imax)
     else
-        if abs(ic-imax)>1e-6%最小间隙
-            fprintf('需要的传动比过大，请减小或减少行星轮个数。当前允许最大传动比%.6f\n',imax)
+        if abs(ic-imax)>1e-6 % minimum clearance
+            fprintf('The required transmission ratio is too large, please reduce or reduce the number of planetary gears. The current maximum transmission ratio allowed is%.6f\n',imax)
         else
-            zb0=(imax-1)*za;%由最大齿数找上界
-            %zb1=floor(zb0);%向下取
-            zb1=floor(zb0)+1;%加一法
+            zb0=(imax-1)*za; % get upper bound from maximum tooth count
+            % zb1=floor(zb0); % round down
+            zb1=floor(zb0)+1; % plus-one method
         end
     end
-    %传动比条件，注意先处理误差0情况
-    if isempty(errd)%未输入默认为0
+    % Ratio condition; handle zero-error case first
+    if isempty(errd) % default to 0 if not provided
         errd = 0;
     end
     if errd==0
         zb2=(ic-1)*za;
         if abs(zb2-round(zb2))>1e-12
-            continue;%下一个za
+            continue; % next za
         end
-        ran=round(zb2);%后续只校核该整数
+        ran=round(zb2); % only check this integer later
     else
         zb0=(ic-1)*za;
-        %保证存在上界
+        % ensure an upper bound exists
         if ~exist('zb1','var') || isempty(zb1)
             zb1 = inf;
         end
         ran=(floor(zb0)-2):(ceil(zb0)+2);
-        ran=ran(ran>=zmin & ran<=zmax);%裁剪边界
-        ran=ran(ran<zb1);%当冗余较大用最大传动比控制上界
+        ran=ran(ran>=zmin & ran<=zmax); % clip to bounds
+        ran=ran(ran<zb1); % when redundancy is large, use max ratio to cap upper bound
     end
-    for zb=ran%在ran范围内对zb历遍
-        i=1+zb/za;%%剔除不符合误差的zb
+    for zb=ran % iterate zb within 'ran' range
+        i=1+zb/za; %% discard zb not meeting error limit
         errc=(i-ic)/ic;
         errc=abs(errc);
         if errc>errd
             continue;
         end
-        %同心条件
+        % Concentricity condition
         ba=zb-za;
         if mod(ba,2)~=0
             continue;
@@ -69,22 +69,22 @@ for za=zmin:zmax
         if zg<zmin
             continue;
         end
-        %装配条件
-        q=(za+zb)/np;%装配系数
-        if mod(za+zb,np)==0%判断是否为整数，均布才为整数
+        % Assembly condition
+        q=(za+zb)/np; % assembly factor
+        if mod(za+zb,np)==0 % check divisibility; uniform only when divisible
             beta=360/(za+zb)*q;
             angles=(0:np-1)*(360/np);
             gaps=ones(1,np)*(360/np);
         else
-            qp=round(q);%取整
+            qp=round(q); % round to integer
             beta=360/(za+zb)*qp;
-            if qp-(zb-za)/np>=1e-3%需要再次校核邻接条件
+            if qp-(zb-za)/np>=1e-3 % need to recheck adjacency
                 if (za+zg+haa+hga)*sin(pi/np)<=zg+haa
                     continue;
                 end
             end
         end
-        %计算安装角度
+        % Compute installation angles
         theta0=360/np;
         gapA=beta;
         gapB=360-(np-2)*theta0-gapA;
@@ -97,7 +97,7 @@ for za=zmin:zmax
         gaps(idx1)=gapA;
         gaps(idx2)=gapB;
         a=m/2*(za+zg);
-        % 保存结果
+        % Save result
         result_count=result_count + 1;
         if result_count <= size(temp_results, 1)
             temp_results(result_count, :) = [za, zg, zb, a, i, errc * 100];
@@ -107,14 +107,12 @@ for za=zmin:zmax
     angles = mod(angles, 360);
     continue
 
-end%历遍完成
+end % iteration finished
 
-% 返回有效结果（APP）
+% Return valid results (APP)
 if result_count > 0
     results = temp_results(1:result_count, :);
 else
     results = [];
 end
 end
-
-
