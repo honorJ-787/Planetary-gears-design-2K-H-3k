@@ -17,10 +17,13 @@ if isempty(np)
 end
 
 % 以最小太阳轮开始历遍
+zmin = ceil(double(zmin));
+zmax = floor(double(zmax));
+np=round(np);
 for za=zmin:zmax
     gaps=[];%新一轮循环，重置
-
-    %传动比条件
+   
+    %%传动比条件
     zb0=(ic-1)*za;
     zb1=ceil(zb0);
     if zb1>=zmax
@@ -35,22 +38,24 @@ for za=zmin:zmax
         if errc>errd
             continue;
         end
-        %同心条件
+        
+        %%同心条件
         ba=zb-za;
         if mod(ba,2)~=0
             continue;
         end
-        zg=ba/2;
+        zg=ba/2
         if zg<zmin
             continue;
         end
-        a=m*(za+zg);
-        %已获得za,zb,zg所有数据，开始校核
-        %邻接条件
-        L=a*(sin(2*pi/np)/sin(pi/2-pi/np));%正弦定理计算行星轮之间的中心距
-        dag=zg*m+2*hagx;%行星轮齿顶圆
-        delta=L-dag;%控制间隙
+
+        %已获得za,zb,zg数据的所有组合，开始校核
+        
+        %%邻接条件
         if np>2%np=1,2，理论上无限
+            L=a*(sin(2*pi/np)/sin(pi/2-pi/np))%正弦定理计算行星轮之间的中心距
+            dag=m*(zg+2*hagx)%行星轮齿顶圆
+            delta=L-dag;%控制间隙
             if delta<jx
                 error('传动比过大，请减小。或减少行星轮个数。')
             end
@@ -71,8 +76,8 @@ for za=zmin:zmax
                 end
             end
         end
-
-        %计算安装角度(APP)
+        
+        %计算安装角度
         theta0=360/np;
         gapA=beta;
         gapB=360-(np-2)*theta0-gapA;
@@ -84,7 +89,7 @@ for za=zmin:zmax
         idx2=1+floor(np/2);
         gaps(idx1)=gapA;
         gaps(idx2)=gapB;
-
+        
         % 保存结果
         result_count=result_count + 1;
         if result_count <= size(temp_results, 1)
@@ -92,7 +97,7 @@ for za=zmin:zmax
         end
     end
     angles = cumsum([0, gaps(1:end-1)]);
-
+    
     %若不存在解，gaps不被定义，以均布的形式兜底
     if ~exist('gaps','var') || isempty(gaps)
         gaps = ones(1,np)*(360/np);
@@ -102,7 +107,7 @@ for za=zmin:zmax
 
 end%历遍完成
 
-% 返回有效结果(app)
+% 返回有效结果（APP）
 if result_count > 0
     results = temp_results(1:result_count, :);
 else
