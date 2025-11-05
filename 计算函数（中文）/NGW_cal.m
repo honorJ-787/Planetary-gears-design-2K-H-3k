@@ -52,6 +52,7 @@ for za=zmin:zmax
         %已获得za,zb,zg数据的所有组合，开始校核
         
         %%邻接条件
+        a=m*(za+zg)/2
         if np>2%np=1,2，理论上无限
             L=a*(sin(2*pi/np)/sin(pi/2-pi/np))%正弦定理计算行星轮之间的中心距
             dag=m*(zg+2*hagx)%行星轮齿顶圆
